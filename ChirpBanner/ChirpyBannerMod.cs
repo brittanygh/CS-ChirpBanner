@@ -28,6 +28,8 @@ namespace ChirpBanner
    {
       private static GameObject BannerWindow;
       private static ChirpMarquee marquee;
+      private string MessageColor = "#FFFFFFFF";
+      private string NameColor = "#31C3FFFF";
 
       public void OnCreated(IChirper chirper)
       {
@@ -41,6 +43,15 @@ namespace ChirpBanner
 
             MyConfig.Serialize(configName, config);
          }
+         // if old version, update with new
+         else if (config.version == 0 || config.version < 2) // update this when we add any new settings                  
+         {
+            config.version = 2;
+            MyConfig.Serialize(configName, config);
+         }         
+
+         MessageColor = config.MessageColor;
+         NameColor = config.NameColor;
 
          if (config.DestroyBuiltinChirper)
          {
@@ -50,7 +61,7 @@ namespace ChirpBanner
          if (BannerWindow == null)
          {            
             UIView ui = GameObject.FindObjectOfType<UIView>();
-
+            
             if (ui != null)
             {
                BannerWindow = new GameObject("ChirpyBannerWindow", typeof(ColossalFramework.UI.UILabel));
@@ -62,6 +73,7 @@ namespace ChirpBanner
                {
                   marquee.SetMaxChirps(config.MaxChirps);
                   marquee.SetScrollSpeed(config.ScrollSpeed);
+                  marquee.SetTextSize(config.TextSize);
                   marquee.AddChirp("Chirp Banner!");
                }
             }
@@ -76,7 +88,8 @@ namespace ChirpBanner
       {
          if (message != null && marquee != null)
          {
-            string str = String.Format("{0} : {1}", message.senderName, message.text);
+            // use rich styled text
+            string str = String.Format("<color={0}>{1}</color> : <color={2}>{3}</color>", NameColor, message.senderName, MessageColor, message.text);
             marquee.AddChirp(str);
          }
       }
@@ -106,8 +119,9 @@ namespace ChirpBanner
       float scrollSpeed = 30;
       bool Shutdown = false;
       bool binit = true;
-
+      GUIStyle style = new GUIStyle();
       Rect messageRect;
+      int TextSize = 20;
 
       public void SetMaxChirps(int i)
       {
@@ -118,6 +132,11 @@ namespace ChirpBanner
       public void SetScrollSpeed(int speed)
       {
          scrollSpeed = speed;
+      }
+
+      public void SetTextSize(int size)
+      {
+         TextSize = size;
       }
 
       public void AddChirp(string chirpStr)
@@ -148,7 +167,22 @@ namespace ChirpBanner
             return;
          }
 
-         string message = "";
+         // if game is in free camera (screenshot/cinematic) mode, don't display chirp banner
+         GameObject gameObject = GameObject.FindGameObjectWithTag("MainCamera");
+         if (gameObject != null)
+         {            
+            CameraController cameraController = gameObject.GetComponent<CameraController>();
+
+            if (cameraController != null)
+            {
+               if (cameraController.m_freeCamera)
+               {
+                  return;
+               }
+            }
+         }         
+
+         string message = string.Format("<size={0}>", TextSize);
 
          // A queue can be enumerated without disturbing its contents. 
          foreach (string chirpStr in msgQ)
@@ -159,6 +193,8 @@ namespace ChirpBanner
             }
             message += chirpStr;
          }
+
+         message += "</size>";
 
          Vector2 dimensions = GUI.skin.label.CalcSize(new GUIContent(message));
 
@@ -181,7 +217,7 @@ namespace ChirpBanner
             messageRect.x = Screen.width;// was = -messageRect.width;
          }
 
-         GUI.Label(messageRect, message);
+         GUI.Label(messageRect, message, style);
       }
    }
 
@@ -190,6 +226,10 @@ namespace ChirpBanner
       public bool DestroyBuiltinChirper = false;
       public int MaxChirps = 3;
       public int ScrollSpeed = 30;
+      public int TextSize = 20; // pixels
+      public string MessageColor = "#FFFFFFFF";
+      public string NameColor = "#31C3FFFF";
+      public int version = 0;
 
       public static void Serialize(string filename, MyConfig config)
       {
@@ -220,6 +260,7 @@ namespace ChirpBanner
                if (config.MaxChirps > 10) config.MaxChirps = 10;
                if (config.ScrollSpeed < 1) config.ScrollSpeed = 1;
                if (config.ScrollSpeed > 100) config.ScrollSpeed = 100;
+               if (config.TextSize < 1 || config.TextSize > 100) config.TextSize = 20;
 
                return config;
             }
