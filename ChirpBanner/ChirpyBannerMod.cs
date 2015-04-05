@@ -29,9 +29,11 @@ namespace ChirpBanner
    {
       public static MyConfig CurrentConfig;
       public static BannerPanel theBannerPanel;
+      
+      public static MyMonoB mmb;
 
       private Component ChirpFilter_FilterModule = null;
-      private static BannerConfiguration theBannerConfigPanel;
+      public static BannerConfiguration theBannerConfigPanel;
 
       public void OnCreated(IChirper chirper)
       {
@@ -59,6 +61,17 @@ namespace ChirpBanner
 
          CreateBannerConfigUI();
          CreateBannerUI();
+
+         if (mmb == null)
+         {
+            UIView uiv = UIView.GetAView();
+
+            if (uiv != null && uiv.gameObject != null)
+            {
+               mmb = uiv.gameObject.AddComponent<MyMonoB>();
+               mmb.transform.parent = uiv.transform;
+            }
+         }
       }
 
       public void OnMessagesUpdated()
@@ -157,6 +170,11 @@ namespace ChirpBanner
          {
             theBannerPanel = null;
          }
+
+         if (mmb != null)
+         {          
+            mmb = null;
+         }
       }
 
       public void OnUpdate()
@@ -217,12 +235,57 @@ namespace ChirpBanner
       {
          if (eventParam.buttons == UIMouseButton.Right)
          {
-            DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, eventParam.position.ToString());
             // show config window at position of click
             theBannerConfigPanel.ShowPanel(eventParam.position);
          }
       }
 
+   }
+
+   public class MyMonoB : MonoBehaviour
+   {
+      public static GameObject corralGo = null;
+
+      public void Awake()
+      {
+         // find modcorral
+         corralGo = GameObject.Find("CorralRegistrationGameObject");
+
+         if (corralGo != null)
+         {
+            Action<string> callbackDel = this.ModCorralClickCallback;
+            object[] paramArray = new object[16];
+
+            paramArray[0] = "ChirpyBannerMod";
+            paramArray[1] = "Chirpy Config";
+            paramArray[2] = "Open the configuration panel for Chirpy Banner";
+            paramArray[3] = callbackDel;
+            paramArray[4] = "ChirperIcon";//normalfg
+            paramArray[5] = null;
+            paramArray[6] = "";//normalbg
+            paramArray[7] = null;
+            paramArray[8] = "ChirperHovered";//hoverfg
+            paramArray[9] = null;
+            paramArray[10] = "ToolbarIconZoomOutbasePressed";//hoverbg
+            paramArray[11] = null;
+            paramArray[12] = "ChirperPressed";//pressedfg
+            paramArray[13] = null;
+            paramArray[14] = "ToolbarIconZoomOutbaseHovered";//pressedbg
+            paramArray[15] = null;
+
+
+            corralGo.SendMessage("RegisterMod", paramArray);
+         }
+         else
+         {
+            DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "ChirpBanner cound not find corral gameobject");
+         }
+      }
+
+      public void ModCorralClickCallback(string buttonName)
+      {
+         ChirpyBanner.theBannerConfigPanel.ShowPanel(Vector2.zero);
+      }
    }
 
    public class BannerLabelStruct

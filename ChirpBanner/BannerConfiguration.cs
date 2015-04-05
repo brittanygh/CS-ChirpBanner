@@ -14,7 +14,7 @@ namespace ChirpBanner
 {
    // configuration window for banner
    // - created by ChirpyBanner, owned by UIView
-   class BannerConfiguration : UIPanel
+   public class BannerConfiguration : UIPanel
    {
       public ChirpyBanner TheChirpyBanner; // our owner
 
@@ -132,10 +132,11 @@ namespace ChirpBanner
          UIView uiv = UIView.GetAView();
 
          Camera camera = this.GetCamera();
+
          Vector3 wpPos = camera.ScreenToWorldPoint(pos);
          Vector2 guiPos = uiv.WorldPointToGUI(camera, wpPos);
 
-         //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("ShowPanel currentpos:{0} newpos:{1} guiPos:{2}", this.position, wpPos, guiPos));
+         //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("ShowPanel currentpos:{0} newpos:{1} guiPos:{2}", pos, wpPos, guiPos));
          
          // would we be off screen with this pos?
          float ourRightEdge = guiPos.x + this.width;
@@ -143,6 +144,13 @@ namespace ChirpBanner
          if (ourRightEdge > uiv.GetScreenResolution().x)
          {
             guiPos.x = uiv.GetScreenResolution().x - this.width;
+         }
+
+         float ourBottomEdge = guiPos.y + this.height;
+
+         if (ourBottomEdge > uiv.GetScreenResolution().y)
+         {
+            guiPos.y = uiv.GetScreenResolution().y - this.height;
          }
 
          this.relativePosition = guiPos;
@@ -153,7 +161,7 @@ namespace ChirpBanner
       public void HideAndSavePanel()
       {
          // save config here
-         DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "Saving ChirpBanner config file.");
+         //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "Saving ChirpBanner config file.");
          MyConfig.Serialize("ChirpBannerConfig.xml", ChirpyBanner.CurrentConfig);
 
          this.isVisible = false;
