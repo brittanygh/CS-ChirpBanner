@@ -16,19 +16,16 @@ namespace ChirpBanner
    {
       public BannerConfiguration ParentBannerConfig;
 
-      public UITextField ColorText; // until we can get color picker working
       public UILabel Description;
-
-      //public UIColorField ColorField;
-
+      public UIColorField ColorField;
 
       public override void Awake()
       {
          base.Awake();
 
-         ColorText = AddUIComponent<UITextField>();
          Description = AddUIComponent<UILabel>();
-         //ColorField = AddUIComponent<UIColorField>();
+         ColorField = GameObject.Instantiate(PublicTransportWorldInfoPanel.FindObjectOfType<UIColorField>().gameObject).GetComponent<UIColorField>();//AddUIComponent<UIColorField>();
+         this.AttachUIComponent(ColorField.gameObject);
 
          this.height = 40;
          this.width = 400;
@@ -52,25 +49,29 @@ namespace ChirpBanner
          this.relativePosition = Vector3.zero;
 
          int inset = 5;
-
-         ColorText.autoSize = true;
-         ColorText.maxLength = 8;
-         ColorText.allowFloats = false;
-         ColorText.isInteractive = true;
-         ColorText.selectOnFocus = true;
-         ColorText.selectionSprite = "EmptySprite";
-         ColorText.hoveredBgSprite = "TextFieldPanelHovered";
-         ColorText.normalBgSprite = "GenericLightPanel";
-         ColorText.focusedBgSprite = "TextFieldPanel";
-         ColorText.builtinKeyNavigation = true;
-         ColorText.Enable();
-         ColorText.relativePosition = new Vector3(inset, 0, 0);
+                  
+         ColorField.name = "BannerColorPicker";
          
+         ColorField.width = 25;
+         ColorField.height = 25;
+         ColorField.pickerPosition = UIColorField.ColorPickerPosition.LeftBelow;
+
+         ColorField.relativePosition = new Vector3(inset, 0, 0);
+         ColorField.anchor = UIAnchorStyle.Top & UIAnchorStyle.Left;
+         ColorField.isInteractive = true;
+         ColorField.builtinKeyNavigation = true;
+         ColorField.foregroundSpriteMode = UIForegroundSpriteMode.Stretch;
+         ColorField.hoveredBgSprite = "ColorPickerOutlineHovered";
+         ColorField.normalBgSprite = "ColorPickerOutline";
+         ColorField.normalFgSprite = "ColorPickerColor";
+         ColorField.outlineSize = 1;
+                    
          //Description.text = "(no label)";
          Description.autoHeight = true;
          Description.autoSize = true;
-         Description.relativePosition = new Vector3(ColorText.relativePosition.x + ColorText.width + inset, 0, 0);
-
+         Description.padding = new RectOffset(2, 2, 2, 2);
+         Description.relativePosition = new Vector3(ColorField.relativePosition.x + ColorField.width + inset, 0, 0);
+         
       }
    }
 }

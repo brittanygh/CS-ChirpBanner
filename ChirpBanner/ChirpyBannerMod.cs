@@ -29,7 +29,7 @@ namespace ChirpBanner
    {
       public static MyConfig CurrentConfig;
       public static BannerPanel theBannerPanel;
-      
+      public static IChirper BuiltinChirper;
       public static MyMonoB mmb;
 
       private Component ChirpFilter_FilterModule = null;
@@ -54,9 +54,11 @@ namespace ChirpBanner
             MyConfig.Serialize(configName, CurrentConfig);
          }
 
+         BuiltinChirper = chirper;
+
          if (CurrentConfig.DestroyBuiltinChirper)
          {
-            chirper.DestroyBuiltinChirper();
+            chirper.ShowBuiltinChirper(false);
          }
 
          CreateBannerConfigUI();
@@ -160,7 +162,7 @@ namespace ChirpBanner
             //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("chirp! {0}", message.text));
 
             string str = String.Format("<color{0}>{1}</color> : <color{2}>{3}</color>", nameColorTag, message.senderName, textColorTag, message.text);
-            theBannerPanel.CreateBannerLabel(str);
+            theBannerPanel.CreateBannerLabel(str, message.senderID);
          }
       }
 
@@ -236,7 +238,7 @@ namespace ChirpBanner
          if (eventParam.buttons == UIMouseButton.Right)
          {
             // show config window at position of click
-            theBannerConfigPanel.ShowPanel(eventParam.position);
+            theBannerConfigPanel.ShowPanel(eventParam.position, false);
          }
       }
 
@@ -284,7 +286,7 @@ namespace ChirpBanner
 
       public void ModCorralClickCallback(string buttonName)
       {
-         ChirpyBanner.theBannerConfigPanel.ShowPanel(Vector2.zero);
+         ChirpyBanner.theBannerConfigPanel.ShowPanel(Vector2.zero, true);
       }
    }
 
@@ -336,7 +338,7 @@ namespace ChirpBanner
          this.height = 25;
 
          this.color = BackgroundColor;
-         this.opacity = (1f - ChirpyBanner.CurrentConfig.BackgroundAlpha);
+         this.opacity = Math.Max(0.02f, (1f - ChirpyBanner.CurrentConfig.BackgroundAlpha));
 
          this.autoLayout = false;
          this.clipChildren = true;
@@ -350,7 +352,7 @@ namespace ChirpBanner
          Shutdown = true;
       }
 
-      public void CreateBannerLabel(string chirpStr)
+      public void CreateBannerLabel(string chirpStr, uint senderID)
       {
          if (Shutdown || string.IsNullOrEmpty(chirpStr))
          {
@@ -372,10 +374,25 @@ namespace ChirpBanner
 
             newLabel.textScaleMode = UITextScaleMode.ScreenResolution;
             newLabel.textScale = (float)ChirpyBanner.CurrentConfig.TextSize / 20f;
-
+            newLabel.opacity = 1.0f;
             newLabel.processMarkup = true;
             newLabel.text = chirpStr;
+            
+            newLabel.objectUserData = (object)new InstanceID()
+            {
+               Citizen = senderID
+            };
 
+            newLabel.eventClick += (UIComponent comp, UIMouseEventParameter p) =>
+            {
+               if (!((UnityEngine.Object)p.source != (UnityEngine.Object)null) || !((UnityEngine.Object)ToolsModifierControl.cameraController != (UnityEngine.Object)null))
+                  return;
+               InstanceID id = (InstanceID)p.source.objectUserData;
+               if (!InstanceManager.IsValid(id))
+                  return;
+               ToolsModifierControl.cameraController.SetTarget(id, ToolsModifierControl.cameraController.transform.position, true); 
+            };
+               
             if (OurLabelFont == null)
             {
                OurLabelFont = newLabel.font;
@@ -405,8 +422,7 @@ namespace ChirpBanner
             BannerLabelStruct bls = new BannerLabelStruct();
             bls.RelativePosition = new Vector3(this.width, label_y_inset); // starting position is off screen, at max extent of parent panel
             bls.Label = newLabel;
-            bls.IsCurrentlyVisible = false;
-
+            bls.IsCurrentlyVisible = false;           
 
             // add to queue
             BannerLabelsQ.Enqueue(bls);
@@ -550,13 +566,13 @@ namespace ChirpBanner
                if (config.ScrollSpeed > 200) config.ScrollSpeed = 200;
                if (config.TextSize < 1 || config.TextSize > 100) config.TextSize = 20;
 
-               if (config.BackgroundAlpha < 0f)
+               if (config.BackgroundAlpha < 0.02f)
                {
-                  config.BackgroundAlpha = 0f;                     
+                  config.BackgroundAlpha = 0.02f;                     
                }
-               else if (config.BackgroundAlpha > 1.0f)
+               else if (config.BackgroundAlpha > 0.98f)
                {
-                  config.BackgroundAlpha = 1.0f;
+                  config.BackgroundAlpha = 0.98f;
                }
 
                return config;

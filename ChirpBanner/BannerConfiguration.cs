@@ -65,7 +65,15 @@ namespace ChirpBanner
          HideChirpSubPanel = AddUIComponent<UICheckSubPanel>();
          HideChirpSubPanel.ParentBannerConfig = this;
          HideChirpSubPanel.Checked = ChirpyBanner.CurrentConfig.DestroyBuiltinChirper;
-         HideChirpSubPanel.Checkbox.eventClick += (component, param) => { ChirpyBanner.CurrentConfig.DestroyBuiltinChirper = !ChirpyBanner.CurrentConfig.DestroyBuiltinChirper;};
+         HideChirpSubPanel.Checkbox.eventClick += (component, param) => 
+         { 
+            ChirpyBanner.CurrentConfig.DestroyBuiltinChirper = !ChirpyBanner.CurrentConfig.DestroyBuiltinChirper;
+
+            if (ChirpyBanner.BuiltinChirper != null)
+            {
+               ChirpyBanner.BuiltinChirper.ShowBuiltinChirper(!ChirpyBanner.CurrentConfig.DestroyBuiltinChirper);
+            }
+         };
 
 
          ScrollSpeedSlider = AddUIComponent<UISliderSubPanel>();
@@ -96,19 +104,25 @@ namespace ChirpBanner
          AlphaSlider.Slider.value = ChirpyBanner.CurrentConfig.BackgroundAlpha;
          AlphaSlider.Slider.scrollWheelAmount = 0.01f;
          AlphaSlider.Description.text = "Background Transparency";
-         AlphaSlider.Slider.eventValueChanged += (component, param) => { ChirpyBanner.CurrentConfig.BackgroundAlpha = param; ChirpyBanner.theBannerPanel.opacity = (1f - param); };
+         AlphaSlider.Slider.eventValueChanged += (component, param) => 
+         {
+            // don't go below opacity of 0.00999999977648258 or control becomes non-responsive to clicks
+            float val = Math.Max(0.02f, Math.Min(0.98f, param));
+            ChirpyBanner.CurrentConfig.BackgroundAlpha = val; 
+            ChirpyBanner.theBannerPanel.opacity = (1f - val); 
+         };
 
          NameColorSubPanel = AddUIComponent<UIColorSubPanel>();
          NameColorSubPanel.ParentBannerConfig = this;
          NameColorSubPanel.Description.text = "Chirper Name Color";
-         NameColorSubPanel.ColorText.text = ChirpyBanner.CurrentConfig.NameColor;
-         NameColorSubPanel.ColorText.eventTextSubmitted += (component, param) => { ChirpyBanner.CurrentConfig.NameColor = param; };
+         NameColorSubPanel.ColorField.selectedColor = UIMarkupStyle.ParseColor(ChirpyBanner.CurrentConfig.NameColor, Color.cyan);
+         NameColorSubPanel.ColorField.eventSelectedColorReleased += (component, param) => { ChirpyBanner.CurrentConfig.NameColor = UIMarkupStyle.ColorToHex(param); };
 
          MessageColorSubPanel = AddUIComponent<UIColorSubPanel>();
          MessageColorSubPanel.ParentBannerConfig = this;
          MessageColorSubPanel.Description.text = "Chirp Message Color";
-         MessageColorSubPanel.ColorText.text = ChirpyBanner.CurrentConfig.MessageColor;
-         MessageColorSubPanel.ColorText.eventTextSubmitted += (component, param) => { ChirpyBanner.CurrentConfig.MessageColor = param; };
+         MessageColorSubPanel.ColorField.selectedColor = UIMarkupStyle.ParseColor(ChirpyBanner.CurrentConfig.MessageColor, Color.white);
+         MessageColorSubPanel.ColorField.eventSelectedColorReleased += (component, param) => { ChirpyBanner.CurrentConfig.MessageColor = UIMarkupStyle.ColorToHex(param);  };
 
          this.eventVisibilityChanged += BannerConfiguration_eventVisibilityChanged;
       }
@@ -118,7 +132,7 @@ namespace ChirpBanner
          //?
       }
 
-      public void ShowPanel(Vector2 pos)
+      public void ShowPanel(Vector2 pos, bool bCenter)
       {
          // alternate show/hid
          if (this.isVisible)
@@ -127,33 +141,43 @@ namespace ChirpBanner
             return;
          }
 
-         // pos is mouse/pixel/screen coordinates
-         // we need to convert to relative uiview coordinates
-         UIView uiv = UIView.GetAView();
-
-         Camera camera = this.GetCamera();
-
-         Vector3 wpPos = camera.ScreenToWorldPoint(pos);
-         Vector2 guiPos = uiv.WorldPointToGUI(camera, wpPos);
-
-         //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("ShowPanel currentpos:{0} newpos:{1} guiPos:{2}", pos, wpPos, guiPos));
-         
-         // would we be off screen with this pos?
-         float ourRightEdge = guiPos.x + this.width;
-
-         if (ourRightEdge > uiv.GetScreenResolution().x)
+         if (bCenter)
          {
-            guiPos.x = uiv.GetScreenResolution().x - this.width;
+            this.useCenter = true;
+            this.CenterToParent();
+            this.useCenter = false;
+         }
+         else
+         {
+            // pos is mouse/pixel/screen coordinates
+            // we need to convert to relative uiview coordinates
+            UIView uiv = UIView.GetAView();
+
+            Camera camera = this.GetCamera();
+
+            Vector3 wpPos = camera.ScreenToWorldPoint(pos);
+            Vector2 guiPos = uiv.WorldPointToGUI(camera, wpPos);
+
+            //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, string.Format("ShowPanel currentpos:{0} newpos:{1} guiPos:{2}", pos, wpPos, guiPos));
+
+            // would we be off screen with this pos?
+            float ourRightEdge = guiPos.x + this.width;
+
+            if (ourRightEdge > uiv.GetScreenResolution().x)
+            {
+               guiPos.x = uiv.GetScreenResolution().x - this.width;
+            }
+
+            float ourBottomEdge = guiPos.y + this.height;
+
+            if (ourBottomEdge > uiv.GetScreenResolution().y)
+            {
+               guiPos.y = uiv.GetScreenResolution().y - this.height;
+            }
+
+            this.relativePosition = guiPos;
          }
 
-         float ourBottomEdge = guiPos.y + this.height;
-
-         if (ourBottomEdge > uiv.GetScreenResolution().y)
-         {
-            guiPos.y = uiv.GetScreenResolution().y - this.height;
-         }
-
-         this.relativePosition = guiPos;
          this.isVisible = true;
          
       }
